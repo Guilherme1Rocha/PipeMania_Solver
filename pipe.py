@@ -2,11 +2,12 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
+# Grupo 28:
+# 106171 Guilherme Vaz Rocha
 # 00000 Nome2
 
 import sys
+from sys import stdin
 from search import (
     Problem,
     Node,
@@ -31,14 +32,14 @@ class PipeManiaState:
 
     # TODO: outros metodos da classe
 
-
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
-
+    def __init__(self, pieces):
+        self.pieces = pieces
+    
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        return self.pieces[(row,col)]
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
@@ -63,8 +64,22 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        # TODO
-        pass
+        row = 1
+        pieces = {}
+        line = stdin.readline().split()
+        pieces_per_row = len(line)
+        for i in range(pieces_per_row):
+            pieces[(row,i+1)] = line[i]
+        for i in range(pieces_per_row-1):
+            line = stdin.readline().split()
+            pieces_per_row = len(line)
+            row+=1
+            for j in range(pieces_per_row):
+                pieces[(row,j+1)] = line[j]
+        for key,value in pieces.items():
+            print(key,':',value)
+        board = Board(pieces)
+        return board
 
     # TODO: outros metodos da classe
 
@@ -106,6 +121,9 @@ class PipeMania(Problem):
 
 if __name__ == "__main__":
     # TODO:
+    board = Board.parse_instance()
+    print(board.get_value(2,3)) #test
+
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
