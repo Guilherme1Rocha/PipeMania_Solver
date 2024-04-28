@@ -34,8 +34,9 @@ class PipeManiaState:
 
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
-    def __init__(self, pieces):
+    def __init__(self, pieces, board_size):
         self.pieces = pieces
+        self.board_size = board_size
     
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -44,14 +45,12 @@ class Board:
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        # TODO
-        pass
+        return self.pieces[row-1, col] if row > 0 else None , self.pieces[row+1,col] if row < (self.board_size-1) else None
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        return self.pieces[row, col-1] if col > 0 else None , self.pieces[row,col+1] if col < (self.board_size-1) else None
 
     @staticmethod
     def parse_instance():
@@ -64,22 +63,21 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        row = 1
+        row = 0
         pieces = {}
         line = stdin.readline().split()
         pieces_per_row = len(line)
         for i in range(pieces_per_row):
-            pieces[(row,i+1)] = line[i]
+            pieces[(row,i)] = line[i]
         for i in range(pieces_per_row-1):
             line = stdin.readline().split()
             pieces_per_row = len(line)
             row+=1
             for j in range(pieces_per_row):
-                pieces[(row,j+1)] = line[j]
-        for key,value in pieces.items():
-            print(key,':',value)
-        board = Board(pieces)
-        return board
+                pieces[(row,j)] = line[j]
+        # for key,value in pieces.items():
+        #     print(key,':',value)
+        return Board(pieces,pieces_per_row)
 
     # TODO: outros metodos da classe
 
@@ -122,8 +120,10 @@ class PipeMania(Problem):
 if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
-    print(board.get_value(2,3)) #test
-
+    print(board.adjacent_vertical_values(0, 0))
+    print(board.adjacent_horizontal_values(0, 0))
+    print(board.adjacent_vertical_values(1, 1))
+    print(board.adjacent_horizontal_values(1, 1))
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
