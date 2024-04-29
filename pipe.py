@@ -2,9 +2,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 28:
+# Grupo 70:
 # 106171 Guilherme Vaz Rocha
-# 00000 Nome2
+# 106454 Manuel Tiago Martins
 
 import sys
 from sys import stdin
