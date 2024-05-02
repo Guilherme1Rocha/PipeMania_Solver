@@ -18,7 +18,7 @@ from search import (
     recursive_best_first_search,
 )
 
-
+rotation = {'C':'DE', 'B':'ED', 'E':'CB', 'D':'BC','H':'VV','V':'HH'}
 class PipeManiaState:
     state_id = 0
 
@@ -41,17 +41,33 @@ class Board:
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         return self.pieces[(row,col)]
-
+    def set_value(self, row: int , col:int , value:str):
+        """Atuliza o valor na respetiva posição do tabuleiro"""
+        self.pieces[(row,col)] = value
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        return self.pieces[row-1, col] if row > 0 else None , self.pieces[row+1,col] if row < (self.board_size-1) else None
-
+        return self.get_value(row-1, col) if row > 0 else None , self.get_value(row+1,col) if row < (self.board_size-1) else None
+    
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        return self.pieces[row, col-1] if col > 0 else None , self.pieces[row,col+1] if col < (self.board_size-1) else None
+        return self.get_value(row, col-1) if col > 0 else None , self.get_value(row,col+1) if col < (self.board_size-1) else None
+    
+    def rotate(self,action) -> str:
+        direction = 0 if action[2] else 1
+        piece = self.get_value(action[0],action[1])
+        return(piece[0] + (rotation[piece[1]])[direction])
 
+    def print_board(self):
+        piece_counter = 0
+        board_str = ""
+        for piece in self.pieces.values():
+            piece_counter += 1
+            if piece_counter == self.board_size*self.board_size: board_str += piece
+            else: board_str += (piece + "\t") if piece_counter % self.board_size > 0  else (piece + "\n")
+        print(board_str)
+            
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -85,22 +101,27 @@ class Board:
 class PipeMania(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
-        pass
+        state = PipeManiaState(board)
+        super().__init__(state)
 
     def actions(self, state: PipeManiaState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
-        pass
+        actions = []
+        for row in range(state.board.board_size):
+            for col in range(state.board.board_size):
+                actions.append((row,col,False))
+                actions.append((row,col,True))
+        return actions
 
     def result(self, state: PipeManiaState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        result_state = PipeManiaState(state.board)
+        result_state.board.set_value(action[0],action[1],result_state.board.rotate(action))
+        return result_state
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é
@@ -120,10 +141,13 @@ class PipeMania(Problem):
 if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
-    print(board.adjacent_vertical_values(0, 0))
-    print(board.adjacent_horizontal_values(0, 0))
-    print(board.adjacent_vertical_values(1, 1))
-    print(board.adjacent_horizontal_values(1, 1))
+    board.print_board()
+    print('\n')
+    problem = PipeMania(board)
+    initial_state = PipeManiaState(board)
+    result_state = problem.result(initial_state,(0,0,True))
+
+    result_state.board.print_board()
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
