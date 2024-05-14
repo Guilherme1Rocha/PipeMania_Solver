@@ -18,8 +18,11 @@ from search import (
     recursive_best_first_search,
 )
 
-rotation = {'C':'DE', 'B':'ED', 'E':'CB', 'D':'BC','H':'VV','V':'HH'}
+#rotation = {'C':'DE', 'B':'ED', 'E':'CB', 'D':'BC','H':'VV','V':'HH'}
 pieces = {'F': ['FE','FB','FC','FD'], 'V': ['VE','VC','VB','VD'], 'B': ['BE','BD','BC','BB'], 'L': ['LV','LH']}
+second_piece = []
+locked_state = False
+possibilities = {}
 class PipeManiaState:
     state_id = 0
     last_moved_piece = ()
@@ -91,31 +94,32 @@ class Board:
         return self.get_value(row, col-1) if col > 0 else None , self.get_value(row,col+1) if col < (self.board_size-1) else None
     
     def get_next_piece(self, row, col) -> tuple:
-        if row == self.board_size-1 and col ==  self.board_size-1:
-            next_row, next_col = 0,0
         if col < self.board_size-1: next_row, next_col = row,col+1
-        else: next_row, next_col = row+1,col
+        else: next_row, next_col = row+1,0
         if (row < 0 or col < 0):
             next_row = 0
             next_col = 0
+        # if row == self.board_size-1 and col ==  self.board_size-1:
+        #     next_row, next_col = 0,0
         while (self.get_Piece(next_row,next_col).is_locked()):
             if next_col < self.board_size-1: 
                 next_row, next_col = next_row,next_col+1
             else: next_row, next_col = next_row+1, 0
-        print(next_row,next_col)
+        # if next_row == 0 and next_col == 0:
+        #     print("first piece or over: ")
+        #     print(next_row,next_col)
         return next_row,next_col
 
-    def rotate_piece(self,action) -> str:
-        direction = 0 if action[2] else 1
-        piece = self.get_value(action[0],action[1])
-        return(piece[0] + (rotation[piece[1]])[direction])
+    # def rotate_piece(self,action) -> str:
+    #     direction = 0 if action[2] else 1
+    #     piece = self.get_value(action[0],action[1])
+    #     return(piece[0] + (rotation[piece[1]])[direction])
 
-    def are_connected(self, row1, col1, row2, col2) -> bool:
-        if (row2 < 0 or row2 >= self.board_size or col2 < 0 or col2 >= self.board_size): return False
-        if row2 > row1: return self.get_value(row2,col2) in ['FC','BC','BE','BD','VC','VD','LV'] #peças com ligação cima
-        if row2 < row1: return self.get_value(row2,col2) in ['FB','BB','BE','BD','VB','VE','LV'] #peças com ligação baixo
-        if col2 > col1: return self.get_value(row2,col2) in ['FE','BC','BB','BE','VC','VE','LH'] #peças com ligação esquerda
-        if col2 < col1: return self.get_value(row2,col2) in ['FD','BC','BB','BD','VB','VD','LH'] #peças com ligação direita
+    def are_connected(self, row1, col1, row2, col2, piece_value) -> bool:
+        if row2 > row1: return piece_value in ['FC','BC','BE','BD','VC','VD','LV'] #peças com ligação cima
+        if row2 < row1: return piece_value in ['FB','BB','BE','BD','VB','VE','LV'] #peças com ligação baixo
+        if col2 > col1: return piece_value in ['FE','BC','BB','BE','VC','VE','LH'] #peças com ligação esquerda
+        if col2 < col1: return piece_value in ['FD','BC','BB','BD','VB','VD','LH'] #peças com ligação direita
     
     def get_neighbours(self, row, col) -> list:
         neighbours = []
@@ -168,16 +172,18 @@ class Board:
                 neighbours .append ((row+1,col))
         return neighbours
 
-    def in_corner(self, row, col) -> bool: return (row == 0 or row == self.board_size-1) and (col == 0 or col == self.board_size-1)
+    def in_corner(self, row, col) -> bool: return ((row == 0 or row == self.board_size-1) and (col == 0 or col == self.board_size-1))
 
-    def in_border(self, row ,col) -> bool: return row == 0 or row == self.board_size-1 or col == 0 or col == self.board_size-1
+    def in_border(self, row ,col) -> bool: return (row == 0 or row == self.board_size-1 or col == 0 or col == self.board_size-1)
 
     def add_possibility(self, possibilities, piece_value, new_possibility):
-        if piece_value != new_possibility: possibilities.append(new_possibility)
+        #if piece_value != new_possibility: possibilities.append(new_possibility)
+        possibilities.append(new_possibility)
         return possibilities
     
     def possibilities_no_constraints(self, piece_value) -> list:
-        return [piece for piece in pieces[piece_value[0]] if piece != piece_value]
+        #return [piece for piece in pieces[piece_value[0]] if piece != piece_value]
+        return [piece for piece in pieces[piece_value[0]]]
     
     def lock_position_piece(self, row ,col, piece_value) -> tuple:
         if self.in_corner(row , col):
@@ -223,20 +229,50 @@ class Board:
                 return possibilities
             if piece_value[0] == 'F':
                 if row == 0:
-                    return [piece for piece in pieces[piece_value[0]] if piece != ('FC' or piece_value)]
+                    return [piece for piece in pieces[piece_value[0]] if piece != 'FC' ]
                 if row == self.board_size-1:
-                    return [piece for piece in pieces[piece_value[0]] if piece != ('FB' or piece_value)]
+                    return [piece for piece in pieces[piece_value[0]] if piece != 'FB' ]
                 if col == 0:
-                    return [piece for piece in pieces[piece_value[0]] if piece != ('FE' or piece_value)]
+                    return [piece for piece in pieces[piece_value[0]] if piece != 'FE' ]
                 if col == self.board_size-1:
-                    return [piece for piece in pieces[piece_value[0]] if piece != ('FD' or piece_value)]
+                    return [piece for piece in pieces[piece_value[0]] if piece != 'FD' ]
         else:
             return self.possibilities_no_constraints(piece_value)
+    
+    def lock_consequences(self,locked_pieces):
+        possibilities_piece = []
+        pieces_counter = 0
+        while pieces_counter < len(locked_pieces):
+            #print(locked_pieces)
+            piece = locked_pieces[pieces_counter]
+            neighbours = self.get_neighbours(piece[0],piece[1])
+            print(piece)
+            print("neighbours: ")
+            print(neighbours)
+            #print('-----------------------')
+            for neighbour in  neighbours:
+                if not self.get_Piece(neighbour[0],neighbour[1]).is_locked():
+                    print(neighbour)
+                    possibilities_total = self.get_piece_possibilities(neighbour[0],neighbour[1])
+                    print(possibilities_total)
+                    for possibility in possibilities_total:
+                        if self.are_connected(piece[0],piece[1], neighbour[0],neighbour[1],possibility): possibilities_piece.append(possibility)
+                    print(possibilities_piece)
+                    if len(possibilities) == 1:
+                        self.set_value(neighbour[0],neighbour[1],possibilities_piece[0])
+                        self.get_Piece(neighbour[0],neighbour[1]).lock()
+                        locked_pieces.append((neighbour[0],neighbour[1]))
+                    else: possibilities[(neighbour[0],neighbour[1])] = possibilities_piece
+                    #print(possibilities_piece)
+                    print('-----------------------')
+                possibilities_piece = []
+            pieces_counter+=1
+        print(possibilities)
 
     def dfs(self,last_moved_piece) -> bool:
-        print("-----------------------")
-        self.print()
-        print('\n')
+        #print("-----------------------")
+        #self.print()
+        #print('\n')
         counter = 0
         # for value in self.pieces.values():
         #     value.visited_state = False
@@ -250,19 +286,21 @@ class Board:
                 piece.visited_state = True
                 counter += 1
             neighbours = self.get_neighbours(piece_coords[0],piece_coords[1])
-            for neighbour in neighbours: 
-                if not self.are_connected(piece_coords[0],piece_coords[1],neighbour[0],neighbour[1]): return False
-            print(piece.get_value_piece() + ": ")
-            print(piece_coords)
-            print(neighbours)
+            for neighbour in neighbours:
+                if (neighbour[0] < 0 or neighbour[0] >= self.board_size or neighbour[1] < 0 or neighbour[1] >= self.board_size) or \
+                not self.are_connected(piece_coords[0],piece_coords[1],neighbour[0],neighbour[1],
+                            self.get_value(neighbour[0],neighbour[1])): return False
+            # print(piece.get_value_piece() + ": ")
+            # print(piece_coords)
+            # print(neighbours)
 
-            if neighbours == []:
-                print('sai') 
-                return False
+            # if neighbours == []:
+            #     print('sai') 
+            #     return False
             for piece in neighbours:
                 if (not self.get_Piece(piece[0],piece[1]).visited_state):
                     stack.append(piece)
-        print("-----------------------")
+        #print("-----------------------")
         return counter == self.board_size**2
     
     def copy(self) -> dict:
@@ -293,24 +331,33 @@ class Board:
             > line = stdin.readline().split()
         """
         row = 0
+        locked_pieces = []
         pieces = {}
         line = stdin.readline().split()
         board = Board(pieces, len(line))
         pieces_per_row = len(line)
         for i in range(pieces_per_row):
+            possibilities[(row,i)] = []
             (locked_state, value_piece) = board.lock_position_piece(row,i,line[i])
             piece = Piece(value_piece if locked_state else line[i],locked_state,False)
+            if locked_state: locked_pieces.append((row,i))
             board.add_Piece(row, i, piece)
         for i in range(pieces_per_row-1):
             line = stdin.readline().split()
             pieces_per_row = len(line)
             row+=1
             for j in range(pieces_per_row):
+                possibilities[(row,j)] = []
                 (locked_state,value_piece) = board.lock_position_piece(row,j,line[j])
                 piece = Piece(value_piece if locked_state else line[j],locked_state,False)
+                if locked_state: locked_pieces.append((row,j))
                 board.add_Piece(row, j, piece)
-      
-        # for key,value in board.pieces.items():
+        print("locked_pieces: ")
+        print(locked_pieces)
+        board.lock_consequences(locked_pieces)
+        
+        #board.lock_consequences(locked_pieces)
+        # for key,value in possibilities.items():
         #     print(key,':',value)
         return board
 
@@ -329,13 +376,15 @@ class PipeMania(Problem):
         last_piece = state.get_last_moved_piece()
         if last_piece == (state.board.board_size-1, state.board.board_size-1): return actions
         (row, col) = state.board.get_next_piece(last_piece[0],last_piece[1])
-        print(row,col)
-        # for row in range (state.board.board_size):
-        #     for col in range (state.board.board_size):
-        #         if not state.board.get_Piece(row,col).is_locked():
-        possibilities = state.board.get_piece_possibilities(row, col)
-        actions += map(lambda piece_value: (row, col, piece_value), possibilities)
-        print(actions)
+        print(last_piece)
+        print ("->")
+        print((row,col))
+        if len(possibilities[(row,col)]) == 0:
+            possibilities_piece = state.board.get_piece_possibilities(row,col)
+            possibilities[(row,col)] = possibilities_piece
+        else: possibilities_piece = possibilities[(row,col)]
+        actions += map(lambda piece_value: (row, col, piece_value), possibilities_piece)
+        #print(actions)
         return actions
 
     def result(self, state: PipeManiaState, action):
@@ -344,6 +393,7 @@ class PipeMania(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         (row, col, piece_value) = action
+        #print(action)
         pieces_copy = state.board.copy()
         result_board = Board(pieces_copy, state.board.board_size)
         result_state = PipeManiaState(result_board, (row,col))
@@ -373,9 +423,13 @@ if __name__ == "__main__":
     # Criar uma instância de PipeMania:
     problem = PipeMania(board)
     # Obter o nó solução usando a procura em profundidade:
-    goal_node = breadth_first_tree_search(problem)
+    goal_node = depth_first_tree_search(problem)
     # Verificar se foi atingida a solução
     #print("Is goal?", problem.goal_test(goal_node.state))
-    goal_node.state.board.print()
-    #print("Solution:\n", goal_node.state.board.print(), sep="")
+    #goal_node.state.board.print()
+    # print("special piece actions: " )
+    # print(second_piece)
+    # print("locked_state: ")
+    # print(locked_state)
+    print("Solution:\n", goal_node.state.board.print(), sep="")
     pass
