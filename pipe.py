@@ -20,6 +20,7 @@ from search import (
 )
 pieces_board = {'F': ['FE','FB','FC','FD'], 'V': ['VE','VC','VB','VD'], 'B': ['BE','BD','BC','BB'], 'L': ['LV','LH']}
 possibilities = {}
+unlocked_pieces = {}
 class PipeManiaState:
     state_id = 0
     last_moved_piece = () 
@@ -44,13 +45,17 @@ class PipeManiaState:
     def get_board_pieces(self) -> dict: return self.pieces
 
     def get_board_size(self) -> int: return self.board_size
+
+    def get_heuristic(self) -> int: return self.board_size**2 - self.heuristic
+
+    def set_heuristic(self,heuristic): self.heuristic = heuristic
     
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
     def __init__(self, pieces, board_size):
         self.pieces = pieces
         self.board_size = board_size
-    
+
     def get_pieces(self) -> dict: return self.pieces
 
     def get_board_size(self) -> int: return self.board_size
@@ -112,16 +117,16 @@ class Board:
     #     else: return row+1,0
 
     def are_connected(self, row1, col1, row2, col2, piece_value) -> bool:
-        if row2 > row1: return piece_value in ['FC','BC','BE','BD','VC','VD','LV'] #peças com ligação cima
-        if row2 < row1: return piece_value in ['FB','BB','BE','BD','VB','VE','LV'] #peças com ligação baixo
+        if row2 > row1: return piece_value in {'FC','BC','BE','BD','VC','VD','LV'} #peças com ligação cima
+        if row2 < row1: return piece_value in {'FB','BB','BE','BD','VB','VE','LV'} #peças com ligação baixo
         if col2 > col1: return piece_value in ['FE','BC','BB','BE','VC','VE','LH'] #peças com ligação esquerda
         if col2 < col1: return piece_value in ['FD','BC','BB','BD','VB','VD','LH'] #peças com ligação direita
 
     def are_connected_full(self, row1, col1, piece_value1, row2, col2, piece_value2) -> bool:
-        if row2 > row1: return piece_value1 in ['FB','BB','BE','BD','VB','VE','LV'] and piece_value2 in ['FC','BC','BE','BD','VC','VD','LV']
-        if row2 < row1: return piece_value1 in ['FC','BC','BE','BD','VC','VD','LV'] and piece_value2 in ['FB','BB','BE','BD','VB','VE','LV'] #peças com ligação baixo
-        if col2 > col1: return piece_value1 in ['FD','BC','BB','BD','VB','VD','LH'] and piece_value2 in ['FE','BC','BB','BE','VC','VE','LH'] #peças com ligação esquerda
-        if col2 < col1: return piece_value1 in ['FE','BC','BB','BE','VC','VE','LH'] and piece_value2 in ['FD','BC','BB','BD','VB','VD','LH'] #peças com ligação direita
+        if row2 > row1: return piece_value1 in {'FB','BB','BE','BD','VB','VE','LV'} and piece_value2 in {'FC','BC','BE','BD','VC','VD','LV'}
+        if row2 < row1: return piece_value1 in {'FC','BC','BE','BD','VC','VD','LV'} and piece_value2 in {'FB','BB','BE','BD','VB','VE','LV'} #peças com ligação baixo
+        if col2 > col1: return piece_value1 in {'FD','BC','BB','BD','VB','VD','LH'} and piece_value2 in {'FE','BC','BB','BE','VC','VE','LH'} #peças com ligação esquerda
+        if col2 < col1: return piece_value1 in {'FE','BC','BB','BE','VC','VE','LH'} and piece_value2 in {'FD','BC','BB','BD','VB','VD','LH'} #peças com ligação direita
     
     def is_connection(self, row1, col1, row2, col2):
         return (row2,col2) in self.get_neighbours(row1,col1)
@@ -181,7 +186,7 @@ class Board:
 
     def in_border(self, row ,col) -> bool: return (row == 0 or row == self.board_size-1 or col == 0 or col == self.board_size-1)
 
-    def add_possibility(self, possibilities, piece_value, new_possibility):
+    def add_possibility(self, possibilities, new_possibility):
         possibilities.append(new_possibility)
         return possibilities
     
@@ -216,23 +221,23 @@ class Board:
         if self.is_locked(row,col): return []
         piece_value = self.get_value(row, col)
         if self.in_corner(row , col):
-            self.add_possibility(possibilities, piece_value, 'FB' if row == 0 else 'FC')
-            self.add_possibility(possibilities, piece_value, 'FD' if col == 0 else 'FE')
+            possibilities.append('FB' if row == 0 else 'FC')
+            self.add_possibility(possibilities, 'FD' if col == 0 else 'FE')
             return possibilities
         if self.in_border(row, col):
             if piece_value[0] == 'V':
                 if row == 0:
-                    self.add_possibility(possibilities, piece_value,'VB')
-                    self.add_possibility(possibilities, piece_value,'VE')
+                    self.add_possibility(possibilities,'VB')
+                    self.add_possibility(possibilities,'VE')
                 if row == self.board_size-1:
-                    self.add_possibility(possibilities, piece_value,'VC')
-                    self.add_possibility(possibilities, piece_value,'VD')
+                    self.add_possibility(possibilities,'VC')
+                    self.add_possibility(possibilities,'VD')
                 if col == 0:
-                    self.add_possibility(possibilities, piece_value,'VB')
-                    self.add_possibility(possibilities, piece_value,'VD')
+                    self.add_possibility(possibilities,'VB')
+                    self.add_possibility(possibilities,'VD')
                 if col == self.board_size-1:
-                    self.add_possibility(possibilities, piece_value,'VE')
-                    self.add_possibility(possibilities, piece_value,'VC')
+                    self.add_possibility(possibilities,'VE')
+                    self.add_possibility(possibilities,'VC')
                 return possibilities
             if piece_value[0] == 'F':
                 if row == 0:
@@ -254,7 +259,6 @@ class Board:
         for neighbour in adj_pieces:
             if not neighbour == None:
                 if self.is_locked(neighbour[0],neighbour[1]):
-                    
                     for possibility in total_possiblities:
                         if self.are_connected_full(neighbour[0],neighbour[1],self.get_value(neighbour[0],neighbour[1]), row, col,possibility) \
                             and possibility not in piece_possibilities:
@@ -272,9 +276,6 @@ class Board:
         pieces_counter = 0
         while pieces_counter < len(locked_pieces):
             piece = locked_pieces[pieces_counter]
-            # print(piece)
-            # print(piece[0],piece[1])
-            # print(self.get_value(piece[0],piece[1]))
             adj_pieces = self.adjacent_pieces(piece[0],piece[1])
             for neighbour in adj_pieces:
                 if not neighbour == None:
@@ -294,14 +295,12 @@ class Board:
                             self.set_value(neighbour[0],neighbour[1],possibilities_piece[0])
                             self.lock(neighbour[0],neighbour[1])
                             locked_pieces.append(neighbour)
-                            #unlocked_pieces.remove((neighbour[0],neighbour[1]))
-                            #possibilities[(neighbour[0],neighbour[1])] = []
                         else: possibilities[(neighbour[0],neighbour[1])] = possibilities_piece
                     possibilities_piece = []
                     remove_possibilities = []
             pieces_counter+=1
 
-    def dfs(self,moved_piece) -> bool:
+    def dfs(self,moved_piece) -> int:
         counter = 0
         stack = []
         stack.append(moved_piece)
@@ -315,10 +314,10 @@ class Board:
             for neighbour in neighbours:
                 if (neighbour[0] < 0 or neighbour[0] >= self.board_size or neighbour[1] < 0 or neighbour[1] >= self.board_size) or \
                 not self.are_connected(piece_coords[0],piece_coords[1],neighbour[0],neighbour[1],
-                            self.get_value(neighbour[0],neighbour[1])): return False
+                            self.get_value(neighbour[0],neighbour[1])): return counter
                 if (not self.is_visited(neighbour[0],neighbour[1])):
                     stack.append(neighbour)
-        return counter == self.board_size**2
+        return counter
     
     def copy(self) -> dict:
         pieces_copy = {}
@@ -375,7 +374,7 @@ class Board:
 class PipeMania(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        state = PipeManiaState(board.get_pieces(), board.get_board_size(), (0,0))
+        state = PipeManiaState(board.get_pieces(), board.get_board_size(), board.get_next_piece(0,0))
         super().__init__(state)
 
     def actions(self, state: PipeManiaState):
@@ -383,10 +382,10 @@ class PipeMania(Problem):
         partir do estado passado como argumento."""
         actions = []
         board = Board(state.get_board_pieces(),state.get_board_size())
-       
         if state.get_next_move_piece() == (state.get_board_size()-1, state.get_board_size()-1): return []
         (row,col) = state.get_next_move_piece()
-        possibilities = [board.get_value(row,col)] if board.is_locked(row,col) else board.get_real_possibilities_piece(row,col)
+        possibilities = board.get_real_possibilities_piece(row,col)
+        #if board.is_locked(row,col): print(row,col)
         actions += map(lambda piece_value: (row, col, piece_value),possibilities)
         return actions
 
@@ -400,21 +399,23 @@ class PipeMania(Problem):
         result_board.set_value(row,col,piece_value)
         result_board.lock(row,col)
         result_board.lock_consequences([(row,col)],True)
-        next_piece = board.get_next_piece(row,col)
+        next_piece = result_board.get_next_piece(row,col)
+        # print('next piece')
+        # print(result_board.is_locked(next_piece[0],next_piece[1]))
+        # print(next_piece)
         return PipeManiaState(result_board.get_pieces(),state.get_board_size(), next_piece)
-
+    
     def goal_test(self, state: PipeManiaState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
         board = Board(state.get_board_pieces(),state.get_board_size())
         if state.get_next_move_piece() != (state.get_board_size()-1, state.get_board_size()-1): return False
-
-        return board.dfs(state.get_next_move_piece())
-
+        return board.dfs(state.get_next_move_piece()) == state.get_board_size()**2
+    
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        pass
+        #return node.state.get_heuristic()
 
 if __name__ == "__main__":
     #start_time = time.time()
