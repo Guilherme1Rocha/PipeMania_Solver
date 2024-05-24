@@ -6,8 +6,6 @@
 # 106171 Guilherme Vaz Rocha
 # 106454 Manuel Tiago Martins
 
-import sys
-#import time
 from sys import stdin
 from search import (
     Problem,
@@ -20,7 +18,6 @@ from search import (
 )
 pieces_board = {'F': ['FE','FB','FC','FD'], 'V': ['VE','VC','VB','VD'], 'B': ['BE','BD','BC','BB'], 'L': ['LV','LH']}
 possibilities = {}
-unlocked_pieces = {}
 class PipeManiaState:
     state_id = 0
     last_moved_piece = () 
@@ -45,10 +42,6 @@ class PipeManiaState:
     def get_board_pieces(self) -> dict: return self.pieces
 
     def get_board_size(self) -> int: return self.board_size
-
-    def get_heuristic(self) -> int: return self.board_size**2 - self.heuristic
-
-    def set_heuristic(self,heuristic): self.heuristic = heuristic
     
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
@@ -108,13 +101,8 @@ class Board:
                 next_row, next_col = next_row,next_col+1
             else: next_row, next_col = next_row+1, 0
             if next_row > self.board_size-1:
-                next_row, next_col = self.board_size-1,self.board_size-1
-                break
+                return self.board_size-1,self.board_size-1
         return next_row,next_col
-    # def get_next_piece(self, row, col) -> tuple:
-    #     if (row,col) == (self.get_board_size()-1,self.get_board_size()-1): return row,col
-    #     if col < self.board_size-1: return row,col+1
-    #     else: return row+1,0
 
     def are_connected(self, row1, col1, row2, col2, piece_value) -> bool:
         if row2 > row1: return piece_value in {'FC','BC','BE','BD','VC','VD','LV'} #peças com ligação cima
@@ -385,7 +373,6 @@ class PipeMania(Problem):
         if state.get_next_move_piece() == (state.get_board_size()-1, state.get_board_size()-1): return []
         (row,col) = state.get_next_move_piece()
         possibilities = board.get_real_possibilities_piece(row,col)
-        #if board.is_locked(row,col): print(row,col)
         actions += map(lambda piece_value: (row, col, piece_value),possibilities)
         return actions
 
@@ -399,11 +386,7 @@ class PipeMania(Problem):
         result_board.set_value(row,col,piece_value)
         result_board.lock(row,col)
         result_board.lock_consequences([(row,col)],True)
-        next_piece = result_board.get_next_piece(row,col)
-        # print('next piece')
-        # print(result_board.is_locked(next_piece[0],next_piece[1]))
-        # print(next_piece)
-        return PipeManiaState(result_board.get_pieces(),state.get_board_size(), next_piece)
+        return PipeManiaState(result_board.get_pieces(),state.get_board_size(), result_board.get_next_piece(row,col))
     
     def goal_test(self, state: PipeManiaState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
@@ -415,10 +398,8 @@ class PipeMania(Problem):
     
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        #return node.state.get_heuristic()
 
 if __name__ == "__main__":
-    #start_time = time.time()
     
     board = Board.parse_instance()
 
@@ -427,7 +408,3 @@ if __name__ == "__main__":
     goal_node = depth_first_tree_search(problem)
 
     print(Board(goal_node.state.get_board_pieces(),goal_node.state.get_board_size()).to_string())
-    
-    # end_time = time.time()
-    # elapsed_time = end_time - start_time
-    # print(f"Elapsed time: {elapsed_time*1000} ms")
