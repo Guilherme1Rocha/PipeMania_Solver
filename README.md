@@ -12,9 +12,9 @@ PIPEMANIA is a puzzle game where a grid contains different types of pipe pieces.
 
 The input is read from the **standard input** and follows this format:
 
-FB\tVB\tVE\n
-BD\tBE\tLV\n
-FC\tFC\tFC\n
+FB\tVB\tVE\n  
+BD\tBE\tLV\n  
+FC\tFC\tFC\n  
 
 
 Each pipe piece is represented as a **two-letter string**:
